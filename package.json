@@ -43,7 +43,7 @@
     "lightweight",
     "typescript"
   ],
-  "author": "",
+  "author": "hv-ojha",
   "license": "MIT",
   "peerDependencies": {
     "openai": "^4.0.0",
@@ -80,10 +80,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ai-integrator.git"
+    "url": "https://github.com/hv-ojha/ai-integrator.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/ai-integrator/issues"
+    "url": "https://github.com/hv-ojha/ai-integrator/issues"
   },
-  "homepage": "https://github.com/yourusername/ai-integrator#readme"
+  "homepage": "https://github.com/hv-ojha/ai-integrator#readme"
 }

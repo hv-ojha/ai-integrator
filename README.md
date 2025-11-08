@@ -422,8 +422,8 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## Support
 
-- [GitHub Issues](https://github.com/yourusername/ai-integrator/issues)
-- [Documentation](https://github.com/yourusername/ai-integrator#readme)
+- [GitHub Issues](https://github.com/hv-ojha/ai-integrator/issues)
+- [Documentation](https://github.com/hv-ojha/ai-integrator#readme)
 
 ## Roadmap
 

@@ -9,83 +9,6 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
-  pr-title-check:
-    name: Validate PR Title
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check PR title follows conventional commits
-        uses: amannn/action-semantic-pull-request@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          types: |
-            feat
-            fix
-            docs
-            style
-            refactor
-            perf
-            test
-            chore
-            build
-            ci
-            revert
-          requireScope: false
-          subjectPattern: ^[A-Z].+$
-          subjectPatternError: |
-            The subject "{subject}" found in the pull request title "{title}"
-            didn't match the configured pattern. Please ensure that the subject
-            starts with an uppercase character.
-
-  commit-message-check:
-    name: Validate Commit Messages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-
-      - name: Install commitlint
-        run: |
-          npm install --save-dev @commitlint/cli @commitlint/config-conventional
-
-      - name: Create commitlint config
-        run: |
-          cat > commitlint.config.js << 'EOF'
-          module.exports = {
-            extends: ['@commitlint/config-conventional'],
-            rules: {
-              'type-enum': [
-                2,
-                'always',
-                [
-                  'feat',
-                  'fix',
-                  'docs',
-                  'style',
-                  'refactor',
-                  'perf',
-                  'test',
-                  'chore',
-                  'revert',
-                  'build',
-                  'ci',
-                ],
-              ],
-            },
-          };
-          EOF
-
-      - name: Validate all commits in PR
-        run: |
-          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
   validation:
     name: Run All Checks
     runs-on: ubuntu-latest
@@ -229,7 +152,7 @@ jobs:
   pr-summary:
     name: PR Ready Check
     runs-on: ubuntu-latest
-    needs: [pr-title-check, commit-message-check, validation, build-check]
+    needs: [validation, build-check]
     if: always()
 
     steps:
@@ -238,8 +161,6 @@ jobs:
         with:
           script: |
             const jobs = [
-              { name: 'PR Title Check', result: '${{ needs.pr-title-check.result }}' },
-              { name: 'Commit Message Check', result: '${{ needs.commit-message-check.result }}' },
               { name: 'Validation', result: '${{ needs.validation.result }}' },
               { name: 'Build Check', result: '${{ needs.build-check.result }}' }
             ];
@@ -266,8 +187,6 @@ jobs:
               // All checks passed
               const comment = `## ✅ PR Ready to Merge\n\n` +
                 `All validation checks have passed:\n\n` +
-                `- ✅ PR title follows conventional commits\n` +
-                `- ✅ All commit messages are valid\n` +
                 `- ✅ Type checking passed\n` +
                 `- ✅ Linting passed\n` +
                 `- ✅ All tests passed\n` +

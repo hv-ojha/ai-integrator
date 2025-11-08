@@ -418,12 +418,57 @@ MIT
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome! Please read our [Contributing Guide](.github/CONTRIBUTING.md) before submitting a pull request.
 
-## Support
+### Development Workflow
 
-- [GitHub Issues](https://github.com/hv-ojha/ai-integrator/issues)
-- [Documentation](https://github.com/hv-ojha/ai-integrator#readme)
+1. Fork the repository
+2. Clone and install dependencies: `npm install`
+3. Create a feature branch: `git checkout -b feat/my-feature`
+4. Make your changes
+5. Run validation: `npm run validate`
+6. Commit with conventional commits (enforced by git hooks)
+7. Submit a pull request
+
+**Quick links:**
+- [Quick Start Guide](.github/QUICK_START.md) - Fast setup and workflow
+- [Contributing Guide](.github/CONTRIBUTING.md) - Detailed contribution guidelines
+
+### Commit Message Format
+
+**This repository enforces commit message conventions using git hooks.**
+
+Use the interactive commit tool:
+```bash
+git add .
+npm run commit
+```
+
+Or write commits manually following the format:
+```bash
+git commit -m "feat: add new feature"
+git commit -m "fix: resolve bug"
+git commit -m "docs: update readme"
+```
+
+See our guides:
+- [Commit Convention](.github/COMMIT_CONVENTION.md) - Format and versioning rules
+- [Commit Linting Guide](.github/COMMIT_LINT_GUIDE.md) - Validation and troubleshooting
+
+### Automated Release Process
+
+When your PR is merged to `main`, the package will be automatically:
+- Version bumped (based on commit messages)
+- Published to npm
+- Released on GitHub with bundle size info
+
+See [RELEASING.md](.github/RELEASING.md) for details.
+
+## Documentation
+
+- [Documentation Index](.github/DOCS.md) - Complete guide to all documentation
+- [GitHub Issues](https://github.com/hv-ojha/ai-integrator/issues) - Report issues or request features
+- [Contributing Guide](.github/CONTRIBUTING.md) - How to contribute
 
 ## Roadmap
 

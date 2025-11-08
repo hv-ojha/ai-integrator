@@ -266,7 +266,7 @@ npm run validate
 ## 🔄 CI/CD Integration
 
 ### GitHub Actions
-- **Trigger**: Push/PR to main/develop
+- **Trigger**: Push/PR to master/develop
 - **Node Versions**: 18.x, 20.x, 21.x
 - **Steps**:
   1. Type checking
@@ -279,7 +279,7 @@ npm run validate
 ### Status Badges
 ```markdown
 [![Tests](https://github.com/yourusername/ai-integrator/workflows/Tests/badge.svg)](https://github.com/yourusername/ai-integrator/actions)
-[![Coverage](https://codecov.io/gh/yourusername/ai-integrator/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/ai-integrator)
+[![Coverage](https://codecov.io/gh/yourusername/ai-integrator/branch/master/graph/badge.svg)](https://codecov.io/gh/yourusername/ai-integrator)
 ```
 
 ## 🛠️ Test Utilities

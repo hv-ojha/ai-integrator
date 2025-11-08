@@ -24,8 +24,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "validate": "npm run typecheck && npm run lint && npm run test"
@@ -64,17 +64,17 @@
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@eslint/js": "^9.17.0",
     "@google/generative-ai": "^0.21.0",
     "@types/node": "^20.17.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
     "@vitest/coverage-v8": "^2.1.8",
     "@vitest/ui": "^2.1.8",
-    "eslint": "^8.57.1",
+    "eslint": "^9.17.0",
     "openai": "^4.77.0",
     "terser": "^5.44.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.2",
     "vitest": "^2.1.8"
   },
   "engines": {

@@ -1,0 +1,283 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  pr-title-check:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title follows conventional commits
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            build
+            ci
+            revert
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            starts with an uppercase character.
+
+  commit-message-check:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install commitlint
+        run: |
+          npm install --save-dev @commitlint/cli @commitlint/config-conventional
+
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.js << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [
+                2,
+                'always',
+                [
+                  'feat',
+                  'fix',
+                  'docs',
+                  'style',
+                  'refactor',
+                  'perf',
+                  'test',
+                  'chore',
+                  'revert',
+                  'build',
+                  'ci',
+                ],
+              ],
+            },
+          };
+          EOF
+
+      - name: Validate all commits in PR
+        run: |
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  validation:
+    name: Run All Checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Generate coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        if: matrix.node-version == '20.x'
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: pr-${{ github.event.pull_request.number }}
+          name: pr-coverage
+
+  build-check:
+    name: Build & Bundle Size Check
+    runs-on: ubuntu-latest
+    needs: validation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Check bundle exists
+        run: |
+          if [ ! -f "dist/index.js" ] || [ ! -f "dist/index.mjs" ]; then
+            echo "❌ Build failed: Bundle files not found"
+            exit 1
+          fi
+          echo "✅ Build successful"
+
+      - name: Calculate bundle sizes
+        id: bundle_size
+        run: |
+          CJS_SIZE=$(stat -c%s dist/index.js 2>/dev/null || stat -f%z dist/index.js)
+          ESM_SIZE=$(stat -c%s dist/index.mjs 2>/dev/null || stat -f%z dist/index.mjs)
+
+          # Convert to KB
+          CJS_KB=$((CJS_SIZE / 1024))
+          ESM_KB=$((ESM_SIZE / 1024))
+
+          echo "cjs_kb=$CJS_KB" >> $GITHUB_OUTPUT
+          echo "esm_kb=$ESM_KB" >> $GITHUB_OUTPUT
+
+          # Set warning threshold (20KB)
+          if [ $CJS_KB -gt 20 ] || [ $ESM_KB -gt 20 ]; then
+            echo "warning=true" >> $GITHUB_OUTPUT
+          else
+            echo "warning=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment bundle size on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const cjsKb = '${{ steps.bundle_size.outputs.cjs_kb }}';
+            const esmKb = '${{ steps.bundle_size.outputs.esm_kb }}';
+            const warning = '${{ steps.bundle_size.outputs.warning }}';
+
+            const warningEmoji = warning === 'true' ? '⚠️' : '✅';
+
+            const comment = `## ${warningEmoji} Bundle Size Report\n\n` +
+              `| Format | Size |\n` +
+              `|--------|------|\n` +
+              `| CJS | ${cjsKb} KB |\n` +
+              `| ESM | ${esmKb} KB |\n\n` +
+              (warning === 'true'
+                ? '⚠️ **Warning:** Bundle size exceeds 20KB threshold\n\n'
+                : '✅ Bundle size is within acceptable limits\n\n') +
+              `---\n` +
+              `*Generated for commit ${context.sha.substring(0, 7)}*`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Bundle Size Report')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  pr-summary:
+    name: PR Ready Check
+    runs-on: ubuntu-latest
+    needs: [pr-title-check, commit-message-check, validation, build-check]
+    if: always()
+
+    steps:
+      - name: Check all jobs passed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = [
+              { name: 'PR Title Check', result: '${{ needs.pr-title-check.result }}' },
+              { name: 'Commit Message Check', result: '${{ needs.commit-message-check.result }}' },
+              { name: 'Validation', result: '${{ needs.validation.result }}' },
+              { name: 'Build Check', result: '${{ needs.build-check.result }}' }
+            ];
+
+            const failed = jobs.filter(job => job.result !== 'success');
+
+            if (failed.length > 0) {
+              const failedList = failed.map(job => `- ❌ ${job.name}`).join('\n');
+              core.setFailed(`Some checks failed:\n${failedList}`);
+
+              // Comment on PR
+              const comment = `## ❌ PR Validation Failed\n\n` +
+                `The following checks need to pass before this PR can be merged:\n\n` +
+                failedList + '\n\n' +
+                `Please fix the issues and push again.`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            } else {
+              // All checks passed
+              const comment = `## ✅ PR Ready to Merge\n\n` +
+                `All validation checks have passed:\n\n` +
+                `- ✅ PR title follows conventional commits\n` +
+                `- ✅ All commit messages are valid\n` +
+                `- ✅ Type checking passed\n` +
+                `- ✅ Linting passed\n` +
+                `- ✅ All tests passed\n` +
+                `- ✅ Build successful\n\n` +
+                `This PR is ready to be reviewed and merged! 🚀`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

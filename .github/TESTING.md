@@ -248,8 +248,8 @@ npm test -- --reporter=verbose
 ## CI/CD Integration
 
 Tests run automatically on:
-- Push to `main` or `develop` branches
-- Pull requests to `main` or `develop`
+- Push to `master` or `develop` branches
+- Pull requests to `master` or `develop`
 
 ### GitHub Actions Workflow
 

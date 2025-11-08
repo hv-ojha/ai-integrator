@@ -1,0 +1,46 @@
+## STARTUP SEQUENCE (Automatic)
+
+When a new Claude Code session starts:
+
+1. **Silent context loading:**
+   - Read `.clauderc` (you're reading it now)
+   - Read `.claude/project-context.md`
+   - Read `.claude/roles.md`
+   - Read `.claude/current-sprint.md`
+   - Read `.claude/patterns.md`
+
+2. **Parse user's first prompt:**
+   - Detect intent (build/review/document/decide)
+   - Activate appropriate role automatically
+   - Read any additional context files needed
+
+3. **First response format:**
+```
+   🔍 Context loaded from: [list files]
+   🎭 Active role: [detected role]
+   
+   [Your actual response]
+```
+
+4. **Subsequent prompts:**
+   - Keep same role unless keywords trigger switch
+   - Don't repeat context loading messages
+   - Just work naturally with full context
+
+## SMART CONTEXT LOADING
+
+**For code changes**, automatically read:
+- The file being modified
+- Related test files  
+- Similar patterns in codebase (use bash: `rg "pattern"`)
+
+**For reviews**, automatically read:
+- All files mentioned
+- Related documentation
+- Test coverage
+
+**For documentation**, automatically read:
+- The code being documented
+- Existing docs to match style
+
+You have permission to read files proactively - don't ask first, just do it.

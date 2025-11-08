@@ -49,12 +49,31 @@ describe('GeminiProvider', () => {
       expect(provider.isConfigured()).toBe(true);
     });
 
-    it('should not be configured without api key', () => {
-      const emptyProvider = new GeminiProvider({
-        provider: 'gemini',
-        apiKey: '',
-      });
-      expect(emptyProvider.isConfigured()).toBe(false);
+    it('should throw error when API key is not provided', () => {
+      expect(() => {
+        new GeminiProvider({
+          provider: 'gemini',
+          apiKey: '',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is only whitespace', () => {
+      expect(() => {
+        new GeminiProvider({
+          provider: 'gemini',
+          apiKey: '   ',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is undefined', () => {
+      expect(() => {
+        new GeminiProvider({
+          provider: 'gemini',
+          apiKey: undefined as any,
+        });
+      }).toThrow('API key is required but was not provided');
     });
   });
 
@@ -64,13 +83,13 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(mockResponse);
 
       const response = await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       expect(response).toMatchObject({
         provider: 'gemini',
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         message: {
           role: 'assistant',
           content: 'Hello from Gemini!',
@@ -90,7 +109,7 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(mockResponse);
 
       await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [
           { role: 'system', content: 'You are helpful' },
           { role: 'user', content: 'Hello' },
@@ -109,7 +128,7 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(mockResponse);
 
       await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [
           { role: 'user', content: 'Question' },
           { role: 'assistant', content: 'Answer' },
@@ -134,7 +153,7 @@ describe('GeminiProvider', () => {
 
       expect(mockGetGenerativeModel).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
         })
       );
     });
@@ -144,7 +163,7 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(mockResponse);
 
       await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test' }],
         temperature: 0.8,
         max_tokens: 1000,
@@ -170,7 +189,7 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(response);
 
       const result = await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test' }],
       });
 
@@ -183,7 +202,7 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(response);
 
       const result = await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test' }],
       });
 
@@ -196,7 +215,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
         expect.fail('Should have thrown');
@@ -216,7 +235,7 @@ describe('GeminiProvider', () => {
 
       const chunks: string[] = [];
       const stream = provider.chatStream({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Stream test' }],
       });
 
@@ -235,7 +254,7 @@ describe('GeminiProvider', () => {
 
       const chunks: any[] = [];
       const stream = provider.chatStream({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test' }],
       });
 
@@ -252,7 +271,7 @@ describe('GeminiProvider', () => {
       mockSendMessageStream.mockResolvedValue(mockStreamResult);
 
       const stream = provider.chatStream({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [
           { role: 'system', content: 'System prompt' },
           { role: 'user', content: 'Test' },
@@ -278,7 +297,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -294,7 +313,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -310,7 +329,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -326,7 +345,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -342,7 +361,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -358,7 +377,7 @@ describe('GeminiProvider', () => {
 
       try {
         await provider.chat({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.0-flash-exp',
           messages: [{ role: 'user', content: 'Test' }],
         });
       } catch (e) {
@@ -375,12 +394,12 @@ describe('GeminiProvider', () => {
       mockSendMessage.mockResolvedValue(mockResponse);
 
       const response1 = await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test 1' }],
       });
 
       const response2 = await provider.chat({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-exp',
         messages: [{ role: 'user', content: 'Test 2' }],
       });
 

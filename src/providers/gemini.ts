@@ -52,7 +52,7 @@ export class GeminiProvider extends BaseProvider {
   }
 
   protected getProviderDefaultModel(): string {
-    return 'gemini-1.5-flash';
+    return 'gemini-2.0-flash-exp';
   }
 
   async chat(request: ChatRequest): Promise<ChatResponse> {

@@ -41,7 +41,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Call AI using the @ai-integrator/core library
     const response = await client.chat({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       messages: [
         { role: 'user', content: prompt }
       ],

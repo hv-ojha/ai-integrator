@@ -43,12 +43,31 @@ describe('AnthropicProvider', () => {
       expect(provider.isConfigured()).toBe(true);
     });
 
-    it('should not be configured without api key', () => {
-      const emptyProvider = new AnthropicProvider({
-        provider: 'anthropic',
-        apiKey: '',
-      });
-      expect(emptyProvider.isConfigured()).toBe(false);
+    it('should throw error when API key is not provided', () => {
+      expect(() => {
+        new AnthropicProvider({
+          provider: 'anthropic',
+          apiKey: '',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is only whitespace', () => {
+      expect(() => {
+        new AnthropicProvider({
+          provider: 'anthropic',
+          apiKey: '   ',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is undefined', () => {
+      expect(() => {
+        new AnthropicProvider({
+          provider: 'anthropic',
+          apiKey: undefined as any,
+        });
+      }).toThrow('API key is required but was not provided');
     });
   });
 

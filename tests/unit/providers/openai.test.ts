@@ -48,12 +48,31 @@ describe('OpenAIProvider', () => {
       expect(provider.isConfigured()).toBe(true);
     });
 
-    it('should not be configured without api key', () => {
-      const emptyProvider = new OpenAIProvider({
-        provider: 'openai',
-        apiKey: '',
-      });
-      expect(emptyProvider.isConfigured()).toBe(false);
+    it('should throw error when API key is not provided', () => {
+      expect(() => {
+        new OpenAIProvider({
+          provider: 'openai',
+          apiKey: '',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is only whitespace', () => {
+      expect(() => {
+        new OpenAIProvider({
+          provider: 'openai',
+          apiKey: '   ',
+        });
+      }).toThrow('API key is required but was not provided');
+    });
+
+    it('should throw error when API key is undefined', () => {
+      expect(() => {
+        new OpenAIProvider({
+          provider: 'openai',
+          apiKey: undefined as any,
+        });
+      }).toThrow('API key is required but was not provided');
     });
   });
 

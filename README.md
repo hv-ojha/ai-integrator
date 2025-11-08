@@ -83,7 +83,7 @@ const client = new AIClient({
 });
 
 const response = await client.chat({
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.0-flash-exp',
   messages: [
     { role: 'user', content: 'Write a haiku about code' }
   ],
@@ -256,7 +256,7 @@ const client = new AIClient({
 });
 
 const response = await client.chat({
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.0-flash-exp',
   messages: [{ role: 'user', content: 'Hello from Deno!' }],
 });
 
@@ -358,7 +358,7 @@ Enable or disable debug logging.
 |----------|---------------|
 | OpenAI | `gpt-4o-mini` |
 | Anthropic | `claude-3-5-sonnet-20241022` |
-| Gemini | `gemini-1.5-flash` |
+| Gemini | `gemini-2.0-flash-exp` |
 
 ## Error Handling
 

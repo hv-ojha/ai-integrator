@@ -17,7 +17,17 @@ export abstract class BaseProvider implements IProvider {
   readonly config: ProviderConfig;
 
   constructor(config: ProviderConfig) {
+    this.validateApiKey(config);
     this.config = config;
+  }
+
+  /**
+   * Validate that API key is provided
+   */
+  private validateApiKey(config: ProviderConfig): void {
+    if (!config.apiKey || config.apiKey.trim() === '') {
+      throw new Error('API key is required but was not provided');
+    }
   }
 
   /**

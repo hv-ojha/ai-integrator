@@ -35,6 +35,8 @@ jobs:
     permissions:
       contents: write
       packages: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -141,26 +143,22 @@ jobs:
         if: steps.check_changes.outputs.skip == 'false'
         run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || '' }}
 
       - name: Create GitHub Release
         if: steps.check_changes.outputs.skip == 'false'
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.bump_version.outputs.new_version }}
-          release_name: Release ${{ steps.bump_version.outputs.new_version }}
-          body: |
-            ## Bundle Size
-            - CJS: ${{ steps.bundle_size.outputs.cjs_size }}
-            - ESM: ${{ steps.bundle_size.outputs.esm_size }}
-            - Package: ${{ steps.bundle_size.outputs.package_size }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.bump_version.outputs.new_version }}" \
+            --title "Release ${{ steps.bump_version.outputs.new_version }}" \
+            --notes "## Bundle Size
+          - CJS: ${{ steps.bundle_size.outputs.cjs_size }}
+          - ESM: ${{ steps.bundle_size.outputs.esm_size }}
+          - Package: ${{ steps.bundle_size.outputs.package_size }}
 
-            ## Changes
-            See commit history for detailed changes.
-          draft: false
-          prerelease: false
+          ## Changes
+          See commit history for detailed changes."
 
       - name: Comment on related PRs
         if: steps.check_changes.outputs.skip == 'false'

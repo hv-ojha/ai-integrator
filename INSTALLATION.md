@@ -71,11 +71,10 @@ After building, you'll see:
 
 ```
 dist/
-├── index.js        # CommonJS bundle (~14KB)
-├── index.mjs       # ESM bundle (~14KB)
+├── index.js        # CommonJS bundle (~13.4KB minified, 3.5KB gzipped)
+├── index.mjs       # ESM bundle (~13.3KB minified, 3.5KB gzipped)
 ├── index.d.ts      # TypeScript declarations
-├── index.d.mts     # ESM TypeScript declarations
-└── *.map           # Source maps
+└── index.d.mts     # ESM TypeScript declarations
 ```
 
 ## Common Issues

@@ -495,7 +495,7 @@ try {
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20+
 - TypeScript 5+ (for type support)
 
 ## License

@@ -5,6 +5,7 @@ import type {
   StreamChunk,
   IProvider,
   FallbackConfig,
+  CustomProviderConfig,
 } from './types';
 import { AIIntegratorError, ErrorType } from './types';
 import { OpenAIProvider } from '../providers/openai';
@@ -43,8 +44,24 @@ export class AIClient {
 
   /**
    * Create a provider instance based on config
+   * NOW SUPPORTS CUSTOM PROVIDERS!
    */
-  private createProvider(config: AIClientConfig | FallbackConfig): IProvider {
+  private createProvider(
+    config: AIClientConfig | FallbackConfig | CustomProviderConfig
+  ): IProvider {
+    // Check if custom provider class is provided
+    if ('customProvider' in config && config.customProvider) {
+      const CustomProviderClass = config.customProvider;
+      const instance = new CustomProviderClass(config);
+
+      // Validate that it implements IProvider
+      this.validateProvider(instance);
+
+      this.logger.info(`Created custom provider: ${instance.type}`);
+      return instance;
+    }
+
+    // Built-in providers
     switch (config.provider) {
       case 'openai':
         return new OpenAIProvider(config);
@@ -53,7 +70,41 @@ export class AIClient {
       case 'gemini':
         return new GeminiProvider(config);
       default:
-        throw new Error(`Unsupported provider: ${config.provider}`);
+        throw new Error(
+          `Unknown provider: ${config.provider}. ` +
+          `Use 'customProvider' option to provide a custom provider implementation.`
+        );
+    }
+  }
+
+  /**
+   * Validate that a custom provider implements IProvider
+   */
+  private validateProvider(provider: unknown): asserts provider is IProvider {
+    const p = provider as Partial<IProvider>;
+
+    if (!p || typeof p !== 'object') {
+      throw new Error('Custom provider must be an object');
+    }
+
+    if (!p.type || typeof p.type !== 'string') {
+      throw new Error('Custom provider must have a "type" property');
+    }
+
+    if (!p.config || typeof p.config !== 'object') {
+      throw new Error('Custom provider must have a "config" property');
+    }
+
+    if (typeof p.chat !== 'function') {
+      throw new Error('Custom provider must implement chat() method');
+    }
+
+    if (typeof p.chatStream !== 'function') {
+      throw new Error('Custom provider must implement chatStream() method');
+    }
+
+    if (typeof p.isConfigured !== 'function') {
+      throw new Error('Custom provider must implement isConfigured() method');
     }
   }
 

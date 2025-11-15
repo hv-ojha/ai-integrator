@@ -10,13 +10,15 @@ const mockCreate = vi.fn();
 // Mock the openai module - MUST be before other imports
 vi.mock('openai', async () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      chat: {
-        completions: {
-          create: mockCreate,
+    default: vi.fn(function() {
+      return {
+        chat: {
+          completions: {
+            create: mockCreate,
+          },
         },
-      },
-    })),
+      };
+    }),
   };
 });
 
@@ -25,6 +27,8 @@ import {
   createMockOpenAIResponse,
   createMockOpenAIStream,
   createMockOpenAIError,
+  createMockOpenAIResponseWithToolCalls,
+  createMockOpenAIStreamWithToolCalls,
 } from '../../mocks/openai.mock';
 import { AIIntegratorError } from '../../../src/core/types';
 
@@ -368,6 +372,83 @@ describe('OpenAIProvider', () => {
         expect(aiError.type).toBe('timeout_error');
         expect(aiError.retryable).toBe(true);
       }
+    });
+  });
+
+  describe('tool calling support', () => {
+    it('should handle response with tool_calls', async () => {
+      const mockToolCalls = [
+        {
+          id: 'call_123',
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            arguments: JSON.stringify({ location: 'San Francisco' }),
+          },
+        },
+      ];
+
+      const mockResponse = createMockOpenAIResponseWithToolCalls(mockToolCalls);
+      mockCreate.mockResolvedValue(mockResponse);
+
+      const response = await provider.chat({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'What is the weather?' }],
+      });
+
+      expect(response.message.tool_calls).toHaveLength(1);
+      expect(response.message.tool_calls![0]).toMatchObject({
+        id: 'call_123',
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'San Francisco' }),
+        },
+      });
+      expect(response.finish_reason).toBe('tool_calls');
+    });
+
+    it('should handle streaming with tool_calls', async () => {
+      const mockToolCalls = [
+        {
+          id: 'call_456',
+          type: 'function',
+          function: {
+            name: 'calculate',
+            arguments: JSON.stringify({ expression: '2+2' }),
+          },
+        },
+      ];
+
+      const mockStream = createMockOpenAIStreamWithToolCalls(mockToolCalls);
+      mockCreate.mockResolvedValue(mockStream);
+
+      const chunks: any[] = [];
+      const stream = provider.chatStream({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Calculate 2+2' }],
+      });
+
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      // Find chunk with tool_calls
+      const toolCallChunks = chunks.filter((c) => c.delta.tool_calls);
+      expect(toolCallChunks.length).toBeGreaterThan(0);
+      expect(toolCallChunks[0].delta.tool_calls![0]).toMatchObject({
+        index: 0,
+        id: 'call_456',
+        type: 'function',
+        function: {
+          name: 'calculate',
+          arguments: JSON.stringify({ expression: '2+2' }),
+        },
+      });
+
+      // Last chunk should have finish_reason
+      const lastChunk = chunks[chunks.length - 1];
+      expect(lastChunk.finish_reason).toBe('tool_calls');
     });
   });
 });

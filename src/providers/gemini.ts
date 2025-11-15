@@ -6,9 +6,14 @@ import type {
   StreamChunk,
   Message,
   AIIntegratorError,
-  ErrorType
+  ErrorType,
+  ToolDefinition
 } from '../core/types';
 import { AIIntegratorError as AIError } from '../core/types';
+import {
+  toGeminiFunctionDeclarations,
+  fromGeminiResponse
+} from '../utils/gemini-tool-transformer';
 
 /**
  * Google Gemini provider implementation
@@ -69,9 +74,13 @@ export class GeminiProvider extends BaseProvider {
           topP: request.top_p,
           stopSequences: Array.isArray(request.stop) ? request.stop : request.stop ? [request.stop] : undefined,
         },
+        // NEW: Tool support
+        ...(request.tools && {
+          tools: toGeminiFunctionDeclarations(request.tools),
+        }),
       });
 
-      const { systemInstruction, contents } = this.convertMessages(request.messages);
+      const { systemInstruction, contents } = this.convertMessages(request.messages, request.tools);
 
       // Start chat with history
       const chat = model.startChat({
@@ -81,7 +90,7 @@ export class GeminiProvider extends BaseProvider {
 
       // Send last message
       const lastMessage = contents[contents.length - 1];
-      const result = await chat.sendMessage(lastMessage.parts[0].text);
+      const result = await chat.sendMessage(lastMessage.parts[0].text || lastMessage.parts);
       const response = result.response;
 
       return this.normalizeResponse(response, modelName);
@@ -104,9 +113,13 @@ export class GeminiProvider extends BaseProvider {
           topP: request.top_p,
           stopSequences: Array.isArray(request.stop) ? request.stop : request.stop ? [request.stop] : undefined,
         },
+        // NEW: Tool support
+        ...(request.tools && {
+          tools: toGeminiFunctionDeclarations(request.tools),
+        }),
       });
 
-      const { systemInstruction, contents } = this.convertMessages(request.messages);
+      const { systemInstruction, contents } = this.convertMessages(request.messages, request.tools);
 
       const chat = model.startChat({
         history: contents.slice(0, -1),
@@ -114,7 +127,7 @@ export class GeminiProvider extends BaseProvider {
       });
 
       const lastMessage = contents[contents.length - 1];
-      const result = await chat.sendMessageStream(lastMessage.parts[0].text);
+      const result = await chat.sendMessageStream(lastMessage.parts[0].text || lastMessage.parts);
 
       let chunkIndex = 0;
       for await (const chunk of result.stream) {
@@ -125,7 +138,7 @@ export class GeminiProvider extends BaseProvider {
     }
   }
 
-  private convertMessages(messages: Message[]): { systemInstruction?: string; contents: any[] } {
+  private convertMessages(messages: Message[], _tools?: ToolDefinition[]): { systemInstruction?: string; contents: any[] } {
     const systemMessages = messages.filter(m => m.role === 'system');
     const otherMessages = messages.filter(m => m.role !== 'system');
 
@@ -134,10 +147,51 @@ export class GeminiProvider extends BaseProvider {
       : undefined;
 
     // Convert to Gemini format
-    const contents = otherMessages.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
-    }));
+    const contents = otherMessages.map(msg => {
+      // Handle tool response messages
+      if (msg.role === 'tool') {
+        return {
+          role: 'user',
+          parts: [{
+            functionResponse: {
+              name: msg.name!, // Tool name
+              response: JSON.parse(msg.content || '{}'),
+            },
+          }],
+        };
+      }
+
+      // Handle assistant messages with tool calls
+      if (msg.tool_calls) {
+        const parts: any[] = [];
+
+        // Add text content if present
+        if (msg.content) {
+          parts.push({ text: msg.content });
+        }
+
+        // Add function calls
+        msg.tool_calls.forEach(tc => {
+          parts.push({
+            functionCall: {
+              name: tc.function.name,
+              args: JSON.parse(tc.function.arguments),
+            },
+          });
+        });
+
+        return {
+          role: 'model',
+          parts,
+        };
+      }
+
+      // Regular messages
+      return {
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }],
+      };
+    });
 
     return { systemInstruction, contents };
   }
@@ -145,7 +199,11 @@ export class GeminiProvider extends BaseProvider {
   private normalizeResponse(response: any, model: string): ChatResponse {
     const candidate = response.candidates[0];
     const content = candidate.content;
-    const text = content.parts[0]?.text || '';
+    const parts = content.parts || [];
+
+    // Extract text and function calls
+    const textParts = parts.filter((p: any) => p.text);
+    const functionCalls = parts.filter((p: any) => p.functionCall);
 
     return {
       id: this.generateId(),
@@ -153,9 +211,10 @@ export class GeminiProvider extends BaseProvider {
       model,
       message: {
         role: 'assistant',
-        content: text,
+        content: textParts.length > 0 ? textParts[0].text : null,
+        tool_calls: functionCalls.length > 0 ? fromGeminiResponse(parts) : undefined,
       },
-      finish_reason: this.mapFinishReason(candidate.finishReason),
+      finish_reason: functionCalls.length > 0 ? 'tool_calls' : this.mapFinishReason(candidate.finishReason),
       usage: response.usageMetadata ? {
         prompt_tokens: response.usageMetadata.promptTokenCount || 0,
         completion_tokens: response.usageMetadata.candidatesTokenCount || 0,
@@ -168,14 +227,29 @@ export class GeminiProvider extends BaseProvider {
   private normalizeStreamChunk(chunk: any, model: string, index: number): StreamChunk {
     const candidate = chunk.candidates?.[0];
     const content = candidate?.content;
-    const text = content?.parts?.[0]?.text || '';
+    const parts = content?.parts || [];
+
+    // Extract text and function calls
+    const textParts = parts.filter((p: any) => p.text);
+    const functionCalls = parts.filter((p: any) => p.functionCall);
 
     return {
       id: `${this.generateId()}-${index}`,
       provider: 'gemini',
       model,
       delta: {
-        content: text,
+        content: textParts.length > 0 ? textParts[0].text : undefined,
+        tool_calls: functionCalls.length > 0
+          ? functionCalls.map((fc: any, idx: number) => ({
+              index: idx,
+              id: `call_${Date.now()}_${idx}`,
+              type: 'function' as const,
+              function: {
+                name: fc.functionCall.name,
+                arguments: JSON.stringify(fc.functionCall.args),
+              },
+            }))
+          : undefined,
       },
       finish_reason: candidate?.finishReason ? this.mapFinishReason(candidate.finishReason) : undefined,
     };

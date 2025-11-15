@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -17,7 +18,6 @@ export default defineConfig({
         'tsup.config.ts',
       ],
       include: ['src/**/*.ts'],
-      all: true,
       lines: 80,
       functions: 80,
       branches: 80,

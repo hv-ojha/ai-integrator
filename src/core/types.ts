@@ -6,19 +6,76 @@ export type ProviderType = 'openai' | 'anthropic' | 'gemini';
 /**
  * Message role in a conversation
  */
-export type MessageRole = 'system' | 'user' | 'assistant' | 'function';
+export type MessageRole = 'system' | 'user' | 'assistant' | 'function' | 'tool';
+
+/**
+ * Tool/Function parameter schema (JSON Schema subset)
+ * Supports the common subset across OpenAI, Anthropic, and Gemini
+ */
+export interface ToolParameterSchema {
+  type: 'object' | 'string' | 'number' | 'boolean' | 'array';
+  description?: string;
+  properties?: Record<string, ToolParameterSchema>;
+  items?: ToolParameterSchema;
+  required?: string[];
+  enum?: (string | number)[];
+  nullable?: boolean;
+  format?: string;
+}
+
+/**
+ * Tool call from the model
+ */
+export interface ToolCall {
+  id: string; // Unique identifier
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string; // JSON string
+  };
+}
+
+/**
+ * Modern tool definition (replaces FunctionDefinition)
+ * Unified format across OpenAI, Anthropic, and Gemini
+ */
+export interface ToolDefinition {
+  type?: 'function'; // OpenAI requires this, others ignore
+  function: {
+    name: string;
+    description?: string;
+    parameters: ToolParameterSchema;
+  };
+}
+
+/**
+ * Tool choice configuration
+ */
+export type ToolChoice =
+  | 'none'     // Disable tools
+  | 'auto'     // Model decides
+  | 'required' // Force tool use (OpenAI only)
+  | { type: 'function'; function: { name: string } }; // Specific tool
 
 /**
  * Unified message format across all providers
  */
 export interface Message {
   role: MessageRole;
-  content: string;
-  name?: string; // For function messages
+  content: string | null; // null when tool_calls exist
+  name?: string; // For function/tool messages
+
+  /**
+   * @deprecated Use `tool_calls` instead. Will be removed in v1.0.0
+   */
   function_call?: {
     name: string;
     arguments: string;
   };
+
+  // MODERN: Tool calling support
+  tool_calls?: ToolCall[];
+  tool_call_id?: string; // For tool response messages
 }
 
 /**
@@ -46,9 +103,39 @@ export interface ChatRequest {
   frequency_penalty?: number;
   presence_penalty?: number;
   stop?: string | string[];
-  functions?: FunctionDefinition[];
-  function_call?: 'none' | 'auto' | { name: string };
   stream?: boolean;
+
+  /**
+   * @deprecated Use `tools` instead. The `functions` parameter is deprecated
+   * in favor of the more flexible `tools` API which supports parallel execution.
+   * This will be removed in v1.0.0.
+   */
+  functions?: FunctionDefinition[];
+
+  /**
+   * @deprecated Use `tool_choice` instead. This will be removed in v1.0.0.
+   */
+  function_call?: 'none' | 'auto' | { name: string };
+
+  /**
+   * Modern tool calling API. Supports parallel tool execution.
+   * Replaces the deprecated `functions` parameter.
+   */
+  tools?: ToolDefinition[];
+
+  /**
+   * Controls which tool the model should call.
+   * - `'none'`: Disable tools
+   * - `'auto'`: Model decides (default)
+   * - `'required'`: Force tool use (OpenAI only)
+   * - `{ type: 'function', function: { name: 'foo' } }`: Force specific tool
+   */
+  tool_choice?: ToolChoice;
+
+  /**
+   * Enable parallel tool calls (OpenAI only, default: true)
+   */
+  parallel_tool_calls?: boolean;
 }
 
 /**
@@ -68,7 +155,7 @@ export interface ChatResponse {
   provider: ProviderType;
   model: string;
   message: Message;
-  finish_reason: 'stop' | 'length' | 'function_call' | 'content_filter' | null;
+  finish_reason: 'stop' | 'length' | 'function_call' | 'tool_calls' | 'content_filter' | null;
   usage?: Usage;
   created_at: Date;
 }
@@ -82,13 +169,28 @@ export interface StreamChunk {
   model: string;
   delta: {
     role?: MessageRole;
-    content?: string;
+    content?: string | null;
+
+    /**
+     * @deprecated Use `tool_calls` instead. Will be removed in v1.0.0
+     */
     function_call?: {
       name?: string;
       arguments?: string;
     };
+
+    // MODERN: Tool calling support
+    tool_calls?: Array<{
+      index: number;
+      id?: string;
+      type?: 'function';
+      function?: {
+        name?: string;
+        arguments?: string;
+      };
+    }>;
   };
-  finish_reason?: 'stop' | 'length' | 'function_call' | 'content_filter' | null;
+  finish_reason?: 'stop' | 'length' | 'function_call' | 'tool_calls' | 'content_filter' | null;
 }
 
 /**
@@ -100,6 +202,7 @@ export interface ProviderConfig {
   baseURL?: string; // For custom endpoints
   organization?: string; // For OpenAI
   defaultModel?: string;
+  debug?: boolean; // Enable debug logging
 }
 
 /**

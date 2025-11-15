@@ -15,6 +15,3 @@ global.console = {
   info: vi.fn(),
   // Keep error and warn for test debugging
 };
-
-// Global test timeout
-vi.setConfig({ testTimeout: 10000 });

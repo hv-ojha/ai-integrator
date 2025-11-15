@@ -29,32 +29,42 @@ const mockGeminiSendMessageStream = vi.fn();
 
 // Mock all provider SDKs
 vi.mock('openai', () => ({
-  default: vi.fn(() => ({
-    chat: {
-      completions: {
-        create: mockOpenAICreate,
+  default: vi.fn(function() {
+    return {
+      chat: {
+        completions: {
+          create: mockOpenAICreate,
+        },
       },
-    },
-  })),
+    };
+  }),
 }));
 
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn(() => ({
-    messages: {
-      create: mockAnthropicCreate,
-    },
-  })),
+  default: vi.fn(function() {
+    return {
+      messages: {
+        create: mockAnthropicCreate,
+      },
+    };
+  }),
 }));
 
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
-    getGenerativeModel: vi.fn(() => ({
-      startChat: vi.fn(() => ({
-        sendMessage: mockGeminiSendMessage,
-        sendMessageStream: mockGeminiSendMessageStream,
-      })),
-    })),
-  })),
+  GoogleGenerativeAI: vi.fn(function() {
+    return {
+      getGenerativeModel: vi.fn(function() {
+        return {
+          startChat: vi.fn(function() {
+            return {
+              sendMessage: mockGeminiSendMessage,
+              sendMessageStream: mockGeminiSendMessageStream,
+            };
+          }),
+        };
+      }),
+    };
+  }),
 }));
 
 describe('AIClient Integration Tests', () => {
@@ -472,6 +482,85 @@ describe('AIClient Integration Tests', () => {
         const aiError = error as AIIntegratorError;
         expect(aiError.type).toBe('rate_limit_error');
         expect(aiError.retryable).toBe(true);
+      }
+    });
+  });
+
+  describe('streaming error scenarios', () => {
+    it('should handle non-AIIntegratorError in streaming', async () => {
+      const client = new AIClient({
+        provider: 'openai',
+        apiKey: 'test-key',
+      });
+
+      // Throw a regular error (not AIIntegratorError)
+      mockOpenAICreate.mockRejectedValue(new TypeError('Unexpected error'));
+
+      const stream = client.chatStream({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Test' }],
+      });
+
+      await expect(async () => {
+        for await (const chunk of stream) {
+          // Should throw before yielding
+        }
+      }).rejects.toThrow('Unexpected error');
+    });
+
+    it('should throw when all providers fail during streaming', async () => {
+      const client = new AIClient({
+        provider: 'openai',
+        apiKey: 'openai-key',
+        fallbacks: [
+          {
+            provider: 'anthropic',
+            apiKey: 'anthropic-key',
+            priority: 1,
+          },
+        ],
+      });
+
+      // Both providers fail
+      mockOpenAICreate.mockRejectedValue(createMockOpenAIError(503, 'OpenAI down'));
+      mockAnthropicCreate.mockRejectedValue(createMockAnthropicError(503, 'Anthropic down'));
+
+      const stream = client.chatStream({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Test' }],
+      });
+
+      await expect(async () => {
+        for await (const chunk of stream) {
+          // Should throw
+        }
+      }).rejects.toThrow();
+    });
+
+    it('should throw when streaming fails on last provider', async () => {
+      const client = new AIClient({
+        provider: 'openai',
+        apiKey: 'test-key',
+      });
+
+      mockOpenAICreate.mockRejectedValue(
+        new AIIntegratorError('api_error', 'Service error', 500, 'openai', true)
+      );
+
+      const stream = client.chatStream({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'Test' }],
+      });
+
+      try {
+        for await (const chunk of stream) {
+          // Should not yield
+        }
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AIIntegratorError);
+        const aiError = error as AIIntegratorError;
+        expect(aiError.message).toBe('Service error');
       }
     });
   });

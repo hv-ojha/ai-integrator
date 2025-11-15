@@ -8,11 +8,12 @@
 
 ## Why @ai-integrator/core?
 
-- **🪶 Lightweight**: Minimal dependencies, tree-shakable, <10KB gzipped
+- **🪶 Lightweight**: Minimal dependencies, tree-shakable, ~17KB raw / ~4KB gzipped
 - **⚡ Zero-config**: Switch providers with a single parameter
 - **🌐 Edge-ready**: Works on Cloudflare Workers, Vercel Edge, Deno, Node.js
 - **🔄 Auto-fallback**: Automatic provider switching when APIs fail
 - **📡 Streaming**: First-class streaming support across all providers
+- **🛠️ Tool calling**: Unified function/tool calling API across all providers
 - **🔒 Type-safe**: Full TypeScript support with comprehensive types
 - **🎯 Simple API**: Unified interface across OpenAI, Anthropic, and Gemini
 
@@ -187,6 +188,85 @@ const response = await client.chat({
 });
 ```
 
+## Function/Tool Calling
+
+Call external functions and APIs from your AI models across all providers.
+
+> **Note**: If you're upgrading from the legacy `functions` API, see the [Migration Guide](MIGRATION_GUIDE.md).
+
+### Basic Example
+
+```typescript
+const response = await client.chat({
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'What is the weather in Tokyo?' }],
+  tools: [{
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: 'Get current weather for a location',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'City name' },
+          unit: { type: 'string', enum: ['celsius', 'fahrenheit'] }
+        },
+        required: ['location']
+      }
+    }
+  }]
+});
+
+if (response.message.tool_calls) {
+  // Execute your function
+  const weatherData = getWeather('Tokyo');
+
+  // Send result back
+  const finalResponse = await client.chat({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'user', content: 'What is the weather in Tokyo?' },
+      response.message,
+      {
+        role: 'tool',
+        content: JSON.stringify(weatherData),
+        tool_call_id: response.message.tool_calls[0].id,
+      }
+    ],
+    tools,
+  });
+
+  console.log(finalResponse.message.content);
+}
+```
+
+### Provider Support
+
+| Provider | Tool Calling | Parallel Calls | Streaming |
+|----------|--------------|----------------|-----------|
+| OpenAI | ✅ | ✅ | ✅ |
+| Anthropic | ✅ | ✅ | ✅ |
+| Gemini | ✅ | ❌ | ✅ |
+
+### Tool Choice Options
+
+```typescript
+// Let model decide (default)
+tool_choice: 'auto'
+
+// Disable tools
+tool_choice: 'none'
+
+// Force tool use (OpenAI only)
+tool_choice: 'required'
+
+// Force specific tool
+tool_choice: { type: 'function', function: { name: 'get_weather' } }
+
+// Enable parallel tool calls (OpenAI only, default: true)
+parallel_tool_calls: true
+```
+
 ## Edge Runtime Examples
 
 ### Cloudflare Workers
@@ -306,6 +386,9 @@ Perform a chat completion.
 | `top_p` | `number` | No | Nucleus sampling parameter |
 | `stop` | `string \| string[]` | No | Stop sequences |
 | `stream` | `boolean` | No | Enable streaming |
+| `tools` | `ToolDefinition[]` | No | Function/tool definitions for tool calling |
+| `tool_choice` | `ToolChoice` | No | Control which tool to call (`'auto'`, `'none'`, `'required'`, or specific tool) |
+| `parallel_tool_calls` | `boolean` | No | Enable parallel tool execution (OpenAI only, default: `true`) |
 
 ##### `chatStream(request: ChatRequest): AsyncGenerator<StreamChunk>`
 
@@ -332,6 +415,7 @@ Enable or disable debug logging.
 | Edge-ready | ⚠️ | ⚠️ | ⚠️ | ✅ |
 | Zero-config switching | ❌ | ❌ | ❌ | ✅ |
 | Built-in retry | ❌ | ❌ | ❌ | ✅ |
+| Tool/Function calling | ✅ | ✅ | ✅ | ✅ |
 | Streaming | ✅ | ✅ | ✅ | ✅ |
 | TypeScript | ✅ | ✅ | ✅ | ✅ |
 
@@ -392,11 +476,13 @@ try {
 
 ## Bundle Size
 
-| Package | Minified + Gzipped |
-|---------|-------------------|
-| @ai-integrator/core | ~8KB |
-| Vercel AI SDK | ~50KB |
-| LangChain | ~200KB+ |
+| Package | Raw (Minified) | Gzipped | npm Package |
+|---------|----------------|---------|-------------|
+| @ai-integrator/core | **17.6 KB** | **4.4 KB** ✨ | 17.1 KB |
+| Vercel AI SDK | ~180 KB | ~50 KB | ~150 KB |
+| LangChain | ~800 KB+ | ~200 KB+ | ~500 KB+ |
+
+> **Note**: "Gzipped" is the actual size delivered to users (HTTP servers compress with gzip). This is the industry-standard metric for bundle size comparison.
 
 ## Best Practices
 
@@ -409,7 +495,7 @@ try {
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20+
 - TypeScript 5+ (for type support)
 
 ## License
@@ -472,12 +558,50 @@ See [RELEASING.md](.github/RELEASING.md) for details.
 
 ## Roadmap
 
-- [ ] Support for more providers (Cohere, Mistral, etc.)
-- [ ] Function/tool calling support
-- [ ] Vision support for multimodal models
-- [ ] Caching layer
-- [ ] Observability hooks
-- [ ] Admin dashboard
+### ✅ Completed (v0.2.0)
+- [x] **Function/tool calling support** - Full support across OpenAI, Anthropic, and Gemini
+  - Unified tool API with backward compatibility
+  - Parallel tool execution (OpenAI)
+  - Streaming tool calls
+  - Comprehensive migration guide
+
+### 🚀 Upcoming
+
+#### Near-term (v0.3.x - v0.4.x)
+- [ ] **Vision support for multimodal models**
+  - Image inputs for GPT-4 Vision, Claude 3, Gemini Pro Vision
+  - Unified image handling API
+- [ ] **Enhanced streaming capabilities**
+  - Server-sent events (SSE) support
+  - WebSocket streaming option
+  - Better error handling in streams
+
+#### Mid-term (v0.5.x - v0.7.x)
+- [ ] **Caching layer**
+  - Built-in response caching
+  - Prompt caching (Anthropic)
+  - Cache invalidation strategies
+- [ ] **Support for more providers**
+  - Cohere
+  - Mistral AI
+  - Perplexity
+  - Together AI
+- [ ] **Observability & monitoring**
+  - Custom hooks for logging
+  - Token usage tracking
+  - Cost estimation
+  - Performance metrics
+
+#### Long-term (v0.8.x+)
+- [ ] **Advanced features**
+  - Structured output modes
+  - JSON mode support across providers
+  - Audio input/output support
+  - Batch processing API
+- [ ] **Developer tooling**
+  - Admin dashboard for monitoring
+  - CLI tool for testing providers
+  - Playground/sandbox environment
 
 ---
 

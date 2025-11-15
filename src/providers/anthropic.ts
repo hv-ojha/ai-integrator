@@ -6,9 +6,15 @@ import type {
   StreamChunk,
   Message,
   AIIntegratorError,
-  ErrorType
+  ErrorType,
+  ToolDefinition
 } from '../core/types';
 import { AIIntegratorError as AIError } from '../core/types';
+import {
+  toAnthropicTools,
+  toAnthropicToolChoice,
+  fromAnthropicResponse
+} from '../utils/anthropic-tool-transformer';
 
 /**
  * Anthropic provider implementation
@@ -64,7 +70,7 @@ export class AnthropicProvider extends BaseProvider {
     try {
       const client = await this.initializeClient();
       // Separate system messages from other messages
-      const { system, messages } = this.convertMessages(request.messages);
+      const { system, messages } = this.convertMessages(request.messages, request.tools);
 
       const response = await client.messages.create({
         model: request.model || this.getDefaultModel(),
@@ -74,6 +80,13 @@ export class AnthropicProvider extends BaseProvider {
         temperature: request.temperature,
         top_p: request.top_p,
         stop_sequences: Array.isArray(request.stop) ? request.stop : request.stop ? [request.stop] : undefined,
+
+        // NEW: Tool support
+        ...(request.tools && {
+          tools: toAnthropicTools(request.tools),
+          tool_choice: toAnthropicToolChoice(request.tool_choice),
+        }),
+
         stream: false,
       });
 
@@ -88,7 +101,7 @@ export class AnthropicProvider extends BaseProvider {
 
     try {
       const client = await this.initializeClient();
-      const { system, messages } = this.convertMessages(request.messages);
+      const { system, messages } = this.convertMessages(request.messages, request.tools);
 
       const stream = await client.messages.create({
         model: request.model || this.getDefaultModel(),
@@ -98,13 +111,61 @@ export class AnthropicProvider extends BaseProvider {
         temperature: request.temperature,
         top_p: request.top_p,
         stop_sequences: Array.isArray(request.stop) ? request.stop : request.stop ? [request.stop] : undefined,
+
+        // NEW: Tool support
+        ...(request.tools && {
+          tools: toAnthropicTools(request.tools),
+          tool_choice: toAnthropicToolChoice(request.tool_choice),
+        }),
+
         stream: true,
       });
 
       for await (const event of stream) {
-        if (event.type === 'content_block_delta') {
+        // Handle text deltas
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
           yield this.normalizeStreamChunk(event, stream);
-        } else if (event.type === 'message_stop') {
+        }
+
+        // Handle tool use blocks
+        if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
+          yield {
+            id: (stream as any).message_id || 'unknown',
+            provider: 'anthropic',
+            model: request.model || this.getDefaultModel(),
+            delta: {
+              tool_calls: [{
+                index: event.index,
+                id: event.content_block.id,
+                type: 'function' as const,
+                function: {
+                  name: event.content_block.name,
+                  arguments: '',
+                },
+              }],
+            },
+          };
+        }
+
+        // Handle tool use deltas (input arguments streaming)
+        if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
+          yield {
+            id: (stream as any).message_id || 'unknown',
+            provider: 'anthropic',
+            model: request.model || this.getDefaultModel(),
+            delta: {
+              tool_calls: [{
+                index: event.index,
+                function: {
+                  arguments: event.delta.partial_json,
+                },
+              }],
+            },
+          };
+        }
+
+        // Handle message stop
+        if (event.type === 'message_stop') {
           yield {
             id: (stream as any).message_id || 'unknown',
             provider: 'anthropic',
@@ -119,7 +180,7 @@ export class AnthropicProvider extends BaseProvider {
     }
   }
 
-  private convertMessages(messages: Message[]): { system?: string; messages: any[] } {
+  private convertMessages(messages: Message[], _tools?: ToolDefinition[]): { system?: string; messages: any[] } {
     const systemMessages = messages.filter(m => m.role === 'system');
     const otherMessages = messages.filter(m => m.role !== 'system');
 
@@ -129,16 +190,58 @@ export class AnthropicProvider extends BaseProvider {
       : undefined;
 
     // Convert messages to Anthropic format
-    const anthropicMessages = otherMessages.map(msg => ({
-      role: msg.role === 'function' ? 'assistant' : msg.role, // Map function to assistant
-      content: msg.content,
-    }));
+    const anthropicMessages = otherMessages.map(msg => {
+      // Handle tool response messages
+      if (msg.role === 'tool') {
+        return {
+          role: 'user',
+          content: [{
+            type: 'tool_result',
+            tool_use_id: msg.tool_call_id!,
+            content: msg.content,
+          }],
+        };
+      }
+
+      // Handle assistant messages with tool calls
+      if (msg.tool_calls) {
+        const content: any[] = [];
+
+        // Add text content if present
+        if (msg.content) {
+          content.push({ type: 'text', text: msg.content });
+        }
+
+        // Add tool calls
+        msg.tool_calls.forEach(tc => {
+          content.push({
+            type: 'tool_use',
+            id: tc.id,
+            name: tc.function.name,
+            input: JSON.parse(tc.function.arguments),
+          });
+        });
+
+        return {
+          role: 'assistant',
+          content,
+        };
+      }
+
+      // Regular messages
+      return {
+        role: msg.role === 'function' ? 'assistant' : msg.role,
+        content: msg.content,
+      };
+    });
 
     return { system, messages: anthropicMessages };
   }
 
   private normalizeResponse(response: any): ChatResponse {
-    const content = response.content[0];
+    // Extract text and tool calls from content array
+    const textBlocks = response.content.filter((b: any) => b.type === 'text');
+    const toolBlocks = response.content.filter((b: any) => b.type === 'tool_use');
 
     return {
       id: response.id,
@@ -146,9 +249,10 @@ export class AnthropicProvider extends BaseProvider {
       model: response.model,
       message: {
         role: 'assistant',
-        content: content?.text || '',
+        content: textBlocks.length > 0 ? textBlocks[0].text : null,
+        tool_calls: toolBlocks.length > 0 ? fromAnthropicResponse(response.content) : undefined,
       },
-      finish_reason: this.mapStopReason(response.stop_reason),
+      finish_reason: toolBlocks.length > 0 ? 'tool_calls' : this.mapStopReason(response.stop_reason),
       usage: {
         prompt_tokens: response.usage.input_tokens,
         completion_tokens: response.usage.output_tokens,

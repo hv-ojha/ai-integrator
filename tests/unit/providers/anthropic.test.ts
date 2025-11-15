@@ -2,7 +2,7 @@
  * Tests for Anthropic provider
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AnthropicProvider } from '../../../src/providers/anthropic';
 import {
   createMockAnthropicResponse,
@@ -16,11 +16,13 @@ const mockCreate = vi.fn();
 
 // Mock the anthropic module
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn(() => ({
-    messages: {
-      create: mockCreate,
-    },
-  })),
+  default: vi.fn(function() {
+    return {
+      messages: {
+        create: mockCreate,
+      },
+    };
+  }),
 }));
 
 describe('AnthropicProvider', () => {
@@ -342,6 +344,173 @@ describe('AnthropicProvider', () => {
         expect(aiError.type).toBe('api_error');
         expect(aiError.retryable).toBe(true);
       }
+    });
+
+    it('should handle ECONNABORTED errors as timeout', async () => {
+      const error: any = new Error('Connection aborted');
+      error.code = 'ECONNABORTED';
+      mockCreate.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'claude-3-5-sonnet-20241022',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('timeout_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+
+    it('should handle ETIMEDOUT errors as timeout', async () => {
+      const error: any = new Error('Timeout');
+      error.code = 'ETIMEDOUT';
+      mockCreate.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'claude-3-5-sonnet-20241022',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('timeout_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+
+    it('should handle ENOTFOUND errors as network error', async () => {
+      const error: any = new Error('Not found');
+      error.code = 'ENOTFOUND';
+      mockCreate.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'claude-3-5-sonnet-20241022',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('network_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+
+    it('should handle ECONNREFUSED errors as network error', async () => {
+      const error: any = new Error('Connection refused');
+      error.code = 'ECONNREFUSED';
+      mockCreate.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'claude-3-5-sonnet-20241022',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('network_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+  });
+
+  describe('validation', () => {
+    it('should throw error for max_tokens less than 1', async () => {
+      await expect(
+        provider.chat({
+          model: 'claude-3-5-sonnet-20241022',
+          messages: [{ role: 'user', content: 'Test' }],
+          max_tokens: 0,
+        })
+      ).rejects.toThrow(/max_tokens must be greater than 0/);
+    });
+  });
+
+  describe('deprecation warnings', () => {
+    let consoleWarnSpy: any;
+
+    beforeEach(() => {
+      consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should warn about deprecated functions parameter when debug is enabled', async () => {
+      const debugProvider = new AnthropicProvider({
+        provider: 'anthropic',
+        apiKey: 'test-api-key',
+        debug: true,
+      });
+
+      const mockResponse = createMockAnthropicResponse();
+      mockCreate.mockResolvedValue(mockResponse);
+
+      await debugProvider.chat({
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Test' }],
+        functions: [{ name: 'test', description: 'test', parameters: {} }] as any,
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DEPRECATION WARNING')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('functions')
+      );
+    });
+
+    it('should warn about deprecated function_call parameter when debug is enabled', async () => {
+      const debugProvider = new AnthropicProvider({
+        provider: 'anthropic',
+        apiKey: 'test-api-key',
+        debug: true,
+      });
+
+      const mockResponse = createMockAnthropicResponse();
+      mockCreate.mockResolvedValue(mockResponse);
+
+      await debugProvider.chat({
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Test' }],
+        function_call: 'auto' as any,
+      });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('DEPRECATION WARNING')
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('function_call')
+      );
+    });
+
+    it('should not warn when debug is disabled', async () => {
+      const mockResponse = createMockAnthropicResponse();
+      mockCreate.mockResolvedValue(mockResponse);
+
+      await provider.chat({
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Test' }],
+        functions: [{ name: 'test', description: 'test', parameters: {} }] as any,
+      });
+
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('finish reason mapping', () => {
+    it('should return null for unknown finish reasons', async () => {
+      const response = { ...createMockAnthropicResponse(), stop_reason: 'unknown_reason' as any };
+      mockCreate.mockResolvedValue(response);
+
+      const result = await provider.chat({
+        model: 'claude-3-5-sonnet-20241022',
+        messages: [{ role: 'user', content: 'Test' }],
+      });
+
+      expect(result.finish_reason).toBe(null);
     });
   });
 });

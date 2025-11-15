@@ -67,18 +67,18 @@
     "@eslint/js": "^9.17.0",
     "@google/generative-ai": "^0.21.0",
     "@types/node": "^20.17.0",
-    "@vitest/coverage-v8": "^2.1.8",
-    "@vitest/ui": "^2.1.8",
+    "@vitest/coverage-v8": "^4.0.9",
+    "@vitest/ui": "^4.0.9",
     "eslint": "^9.17.0",
     "openai": "^4.77.0",
     "terser": "^5.44.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.9"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",

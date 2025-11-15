@@ -75,8 +75,18 @@ export class OpenAIProvider extends BaseProvider {
         frequency_penalty: request.frequency_penalty,
         presence_penalty: request.presence_penalty,
         stop: request.stop,
-        functions: request.functions,
-        function_call: request.function_call,
+
+        // MODERN API (preferred)
+        ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
+        ...(request.parallel_tool_calls !== undefined && {
+          parallel_tool_calls: request.parallel_tool_calls
+        }),
+
+        // BACKWARD COMPATIBILITY
+        ...(request.functions && { functions: request.functions }),
+        ...(request.function_call && { function_call: request.function_call }),
+
         stream: false,
       });
 
@@ -100,8 +110,18 @@ export class OpenAIProvider extends BaseProvider {
         frequency_penalty: request.frequency_penalty,
         presence_penalty: request.presence_penalty,
         stop: request.stop,
-        functions: request.functions,
-        function_call: request.function_call,
+
+        // MODERN API (preferred)
+        ...(request.tools && { tools: request.tools }),
+        ...(request.tool_choice && { tool_choice: request.tool_choice }),
+        ...(request.parallel_tool_calls !== undefined && {
+          parallel_tool_calls: request.parallel_tool_calls
+        }),
+
+        // BACKWARD COMPATIBILITY
+        ...(request.functions && { functions: request.functions }),
+        ...(request.function_call && { function_call: request.function_call }),
+
         stream: true,
       });
 
@@ -118,6 +138,12 @@ export class OpenAIProvider extends BaseProvider {
       role: msg.role,
       content: msg.content,
       name: msg.name,
+
+      // MODERN: Tool calling support
+      tool_calls: msg.tool_calls,
+      tool_call_id: msg.tool_call_id,
+
+      // DEPRECATED: Backward compatibility
       function_call: msg.function_call,
     }));
   }
@@ -132,7 +158,16 @@ export class OpenAIProvider extends BaseProvider {
       model: response.model,
       message: {
         role: message.role,
-        content: message.content || '',
+        content: message.content,
+
+        // MODERN: Tool calling support
+        tool_calls: message.tool_calls?.map((tc: any) => ({
+          id: tc.id,
+          type: tc.type,
+          function: tc.function,
+        })),
+
+        // DEPRECATED: Backward compatibility
         function_call: message.function_call,
       },
       finish_reason: choice.finish_reason,
@@ -156,6 +191,16 @@ export class OpenAIProvider extends BaseProvider {
       delta: {
         role: delta.role,
         content: delta.content,
+
+        // MODERN: Tool calling support
+        tool_calls: delta.tool_calls?.map((tc: any) => ({
+          index: tc.index,
+          id: tc.id,
+          type: tc.type,
+          function: tc.function,
+        })),
+
+        // DEPRECATED: Backward compatibility
         function_call: delta.function_call,
       },
       finish_reason: choice?.finish_reason,

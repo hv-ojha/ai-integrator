@@ -14,19 +14,25 @@ import { AIIntegratorError } from '../../../src/core/types';
 // Create mock instances
 const mockSendMessage = vi.fn();
 const mockSendMessageStream = vi.fn();
-const mockStartChat = vi.fn(() => ({
-  sendMessage: mockSendMessage,
-  sendMessageStream: mockSendMessageStream,
-}));
-const mockGetGenerativeModel = vi.fn(() => ({
-  startChat: mockStartChat,
-}));
+const mockStartChat = vi.fn(function() {
+  return {
+    sendMessage: mockSendMessage,
+    sendMessageStream: mockSendMessageStream,
+  };
+});
+const mockGetGenerativeModel = vi.fn(function() {
+  return {
+    startChat: mockStartChat,
+  };
+});
 
 // Mock the google generative ai module
 vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn(() => ({
-    getGenerativeModel: mockGetGenerativeModel,
-  })),
+  GoogleGenerativeAI: vi.fn(function() {
+    return {
+      getGenerativeModel: mockGetGenerativeModel,
+    };
+  }),
 }));
 
 describe('GeminiProvider', () => {
@@ -405,6 +411,57 @@ describe('GeminiProvider', () => {
 
       expect(response1.id).not.toBe(response2.id);
       expect(response1.id).toMatch(/^gemini-/);
+    });
+  });
+
+  describe('HTTP status code errors', () => {
+    it('should handle HTTP 500+ errors as retryable', async () => {
+      const error: any = new Error('Server error');
+      error.status = 503;
+      mockSendMessage.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'gemini-2.0-flash-exp',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('api_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+
+    it('should handle HTTP 429 as rate limit error', async () => {
+      const error: any = new Error('Rate limit');
+      error.status = 429;
+      mockSendMessage.mockRejectedValue(error);
+
+      try {
+        await provider.chat({
+          model: 'gemini-2.0-flash-exp',
+          messages: [{ role: 'user', content: 'Test' }],
+        });
+      } catch (e) {
+        const aiError = e as AIIntegratorError;
+        expect(aiError.type).toBe('rate_limit_error');
+        expect(aiError.retryable).toBe(true);
+      }
+    });
+  });
+
+  describe('finish reason mapping', () => {
+    it('should return null for unknown finish reasons', async () => {
+      const mockResponse = createMockGeminiResponse();
+      mockResponse.response.candidates[0].finishReason = 'UNKNOWN_REASON' as any;
+      mockSendMessage.mockResolvedValue(mockResponse);
+
+      const result = await provider.chat({
+        model: 'gemini-2.0-flash-exp',
+        messages: [{ role: 'user', content: 'Test' }],
+      });
+
+      expect(result.finish_reason).toBe(null);
     });
   });
 });

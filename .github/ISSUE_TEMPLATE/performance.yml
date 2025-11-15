@@ -1,0 +1,242 @@
+name: Performance Issue
+description: Report performance problems or suggest performance optimizations
+title: "[Performance]: "
+labels: ["performance", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve performance! Being lightweight and fast is core to @ai-integrator/core.
+
+        **Before submitting**, please:
+        - Search existing issues to avoid duplicates
+        - Test with the latest version
+        - Gather performance metrics to support your report
+
+  - type: dropdown
+    id: performance-area
+    attributes:
+      label: Performance Area
+      description: What aspect of performance is affected?
+      options:
+        - Bundle size
+        - Runtime speed
+        - Memory usage
+        - Network requests
+        - Cold start time (edge runtimes)
+        - Streaming performance
+        - Initialization time
+        - Type checking performance
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime Environment
+      description: Where did you observe this performance issue?
+      options:
+        - Node.js
+        - Cloudflare Workers
+        - Vercel Edge Functions
+        - Deno
+        - Browser
+        - Multiple environments
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      description: What version of @ai-integrator/core are you using?
+      placeholder: "e.g., 0.1.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem you're experiencing
+      placeholder: |
+        Example: "Bundle size increased by 50% after upgrading..."
+        Example: "Response time is slow when using fallback providers..."
+        Example: "Memory usage grows over time when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Performance Metrics
+      description: |
+        Provide concrete metrics demonstrating the performance issue.
+        Include before/after comparisons if applicable.
+      placeholder: |
+        Current metrics:
+        - Bundle size: XX KB (minified + gzipped)
+        - Response time: XX ms
+        - Memory usage: XX MB
+        - Cold start: XX ms
+
+        Expected metrics:
+        - Should be: XX KB
+        - Should take: XX ms
+
+        Benchmark results:
+        ```
+        [paste benchmark output]
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this performance issue?
+      placeholder: |
+        1. Initialize AIClient with configuration '...'
+        2. Execute method '...' N times
+        3. Measure using '...'
+        4. Observe performance degradation
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Benchmark Code
+      description: |
+        Provide code that demonstrates the performance issue or a benchmark script.
+      placeholder: |
+        import { AIClient } from '@ai-integrator/core';
+
+        const client = new AIClient({
+          provider: 'openai',
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        // Performance test
+        const start = performance.now();
+        for (let i = 0; i < 100; i++) {
+          await client.chat({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: 'Test' }],
+          });
+        }
+        const end = performance.now();
+        console.log(`Time: ${end - start}ms`);
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Comparison (if applicable)
+      description: |
+        If you've compared with other libraries or versions, share the results.
+      placeholder: |
+        Comparison with [library name]:
+        - @ai-integrator/core: XX ms / XX KB
+        - [other library]: XX ms / XX KB
+
+        Or:
+
+        Version comparison:
+        - v0.1.0: XX KB
+        - v0.1.1: XX KB (regression)
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope of Impact
+      description: How widespread is this performance issue?
+      options:
+        - Affects all usage patterns
+        - Affects specific provider(s)
+        - Affects specific runtime environments
+        - Affects specific features
+        - Only affects edge cases
+    validations:
+      required: true
+
+  - type: textarea
+    id: analysis
+    attributes:
+      label: Root Cause Analysis (if known)
+      description: |
+        If you've investigated, share what you think might be causing the issue.
+      placeholder: |
+        Example: "Profiling shows that..."
+        Example: "Bundle analysis reveals that..."
+        Example: "Network trace shows multiple redundant requests..."
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Optimization
+      description: Do you have any suggestions for how to improve this?
+      placeholder: |
+        Possible solutions:
+        1. Lazy load provider SDKs
+        2. Cache configuration objects
+        3. Use connection pooling
+        4. Implement request batching
+        etc.
+
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: Regression Check
+      description: Performance regression details
+      options:
+        - label: This is a regression from a previous version (specify version in description)
+        - label: This has always been an issue
+        - label: This only happens under specific conditions
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: |
+        Provide relevant environment information for reproducing the issue.
+      placeholder: |
+        - Node.js version: 20.10.0
+        - OS: macOS 14.1 / Linux / Windows
+        - CPU: ...
+        - Memory: ...
+        - Network conditions: ...
+        - Build tool: webpack/rollup/esbuild/vite
+        - Bundler config: ...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the performance issue
+      placeholder: |
+        - Does this happen consistently or intermittently?
+        - Performance profiles/flame graphs?
+        - Related issues: #...
+        - Screenshots/charts?
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have tested with the latest version
+          required: true
+        - label: I have provided concrete performance metrics
+          required: true
+        - label: I have included reproduction steps and code
+          required: true

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question / Discussion
+    url: https://github.com/hv-ojha/ai-integrator/discussions
+    about: Ask questions, share ideas, or discuss the library with the community
+  - name: Security Vulnerability
+    url: https://github.com/hv-ojha/ai-integrator/security/advisories/new
+    about: Report security vulnerabilities privately (DO NOT create public issues for security issues)
+  - name: Documentation
+    url: https://github.com/hv-ojha/ai-integrator#readme
+    about: Read the full documentation, guides, and examples

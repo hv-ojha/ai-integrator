@@ -1,0 +1,202 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for @ai-integrator/core
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! We appreciate your ideas to make @ai-integrator/core better.
+
+        **Before submitting**, please:
+        - Search existing issues to see if this has already been requested
+        - Check our [roadmap](https://github.com/hv-ojha/ai-integrator#roadmap) to see if it's already planned
+        - Review the [documentation](https://github.com/hv-ojha/ai-integrator#readme) to ensure it doesn't already exist
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature are you requesting?
+      options:
+        - New AI provider support
+        - New API method/capability
+        - Configuration option
+        - Performance improvement
+        - Developer experience
+        - Documentation
+        - Type safety/TypeScript
+        - Edge runtime support
+        - Error handling
+        - Testing utilities
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? Is your feature request related to a specific pain point?
+      placeholder: |
+        Example: "I'm always frustrated when..."
+        Example: "Currently, there's no way to..."
+        Example: "It would be helpful if..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: |
+        Clearly describe what you want to happen and how it should work.
+        Include specific API examples if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-design
+    attributes:
+      label: API Design (if applicable)
+      description: |
+        If this involves new APIs, show how you envision developers would use it.
+        Include code examples with the proposed API.
+      placeholder: |
+        // Example usage:
+        const client = new AIClient({
+          provider: 'openai',
+          apiKey: process.env.OPENAI_API_KEY,
+          // Your proposed feature here
+        });
+
+        const result = await client.yourNewMethod({
+          // parameters
+        });
+      render: typescript
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: |
+        Describe other approaches you've thought about and why they might not be ideal.
+        If you have a current workaround, describe it here.
+
+  - type: dropdown
+    id: providers
+    attributes:
+      label: Provider Support
+      description: Should this feature work with all providers or specific ones?
+      options:
+        - All providers (OpenAI, Anthropic, Gemini)
+        - OpenAI only
+        - Anthropic only
+        - Gemini only
+        - Provider-agnostic
+        - New provider (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority / Impact
+      description: How important is this feature to you?
+      options:
+        - Critical - Blocking my use of the library
+        - High - Significantly improves my workflow
+        - Medium - Nice to have
+        - Low - Minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific real-world use cases for this feature
+      placeholder: |
+        Example use cases:
+        1. In a chatbot application, users need to...
+        2. For edge deployments, it's important to...
+        3. When building multi-tenant apps, we often need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact on Existing Functionality
+      description: |
+        Would this be a breaking change? How might it affect existing users?
+      placeholder: |
+        - Breaking change: Yes/No
+        - Backward compatible: Yes/No
+        - Migration path needed: Yes/No
+        - Impact on bundle size: Estimated increase/decrease
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation Considerations
+      description: Check any that apply to your feature request
+      options:
+        - label: This feature should maintain the lightweight nature of the library
+        - label: This feature should work in edge runtimes (Cloudflare Workers, Vercel Edge)
+        - label: This feature requires updates to TypeScript type definitions
+        - label: This feature may impact bundle size and should be tree-shakable
+        - label: This feature requires comprehensive error handling
+        - label: This feature needs documentation updates
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples from Other Libraries
+      description: |
+        Are there similar features in other libraries that inspired this request?
+        Provide links or examples if available.
+      placeholder: |
+        Example from [library name]:
+        - Link: https://...
+        - How it works: ...
+        - What we could do better: ...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to help implement this feature?
+      options:
+        - label: I would be willing to submit a PR for this feature
+        - label: I would need guidance on implementation
+        - label: I can help with testing/documentation
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or references about the feature request
+      placeholder: |
+        - Related issues: #...
+        - External references: https://...
+        - Screenshots/mockups: ...
+        - Performance benchmarks: ...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have checked the roadmap to see if this is already planned
+          required: true
+        - label: I have clearly described the problem and proposed solution
+          required: true
+        - label: I have considered the impact on existing functionality
+          required: true

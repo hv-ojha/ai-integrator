@@ -1,0 +1,196 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in @ai-integrator/core
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below with as much detail as possible.
+
+        **Before submitting**, please:
+        - Search existing issues to avoid duplicates
+        - Check if the issue is already fixed in the latest version
+        - Review our [documentation](https://github.com/hv-ojha/ai-integrator#readme)
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: AI Provider
+      description: Which AI provider are you using when the bug occurs?
+      options:
+        - OpenAI
+        - Anthropic (Claude)
+        - Google Gemini
+        - Multiple providers (fallback)
+        - Not provider-specific
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime Environment
+      description: Where are you running the library?
+      options:
+        - Node.js
+        - Cloudflare Workers
+        - Vercel Edge Functions
+        - Deno
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      description: What version of @ai-integrator/core are you using?
+      placeholder: "e.g., 0.1.1"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js Version (if applicable)
+      description: What version of Node.js are you using?
+      placeholder: "e.g., 18.17.0 or 20.10.0"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened vs what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Initialize AIClient with '...'
+        2. Call method '...'
+        3. Pass parameters '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Minimal Code Sample
+      description: |
+        Please provide a minimal, reproducible code sample that demonstrates the issue.
+        **Important**: Remove any sensitive information like API keys before submitting.
+      placeholder: |
+        import { AIClient } from '@ai-integrator/core';
+
+        const client = new AIClient({
+          provider: 'openai',
+          apiKey: 'sk-...', // Redacted
+        });
+
+        const response = await client.chat({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what actually happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error Messages / Stack Trace
+      description: |
+        If applicable, paste any error messages or stack traces.
+        **Remember to redact any sensitive information**.
+      placeholder: |
+        Error: [error message]
+        at [stack trace]
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug Logs
+      description: |
+        If you have `debug: true` enabled, please paste relevant log output.
+        **Remember to redact any sensitive information like API keys**.
+      placeholder: Paste debug logs here
+      render: shell
+
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature Area
+      description: Which feature or functionality is affected?
+      options:
+        - Chat completion
+        - Streaming
+        - Fallback/retry logic
+        - Configuration/initialization
+        - Type definitions
+        - Error handling
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (if any)
+      description: Have you found any way to work around this issue?
+      placeholder: Describe any temporary workarounds you've discovered
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: |
+        - Does this happen consistently or intermittently?
+        - Did this work in a previous version?
+        - Any relevant environment details?
+        - Bundle size impact?
+        - Performance considerations?
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have tested with the latest version of @ai-integrator/core
+          required: true
+        - label: I have provided a minimal, reproducible code sample
+          required: true
+        - label: I have removed all sensitive information (API keys, credentials, etc.)
+          required: true
+        - label: I have included relevant error messages and logs
+          required: false

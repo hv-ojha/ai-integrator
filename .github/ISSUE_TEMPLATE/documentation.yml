@@ -1,0 +1,197 @@
+name: Documentation Issue
+description: Report issues or suggest improvements to documentation
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! Clear docs are essential for a great developer experience.
+
+        **Before submitting**, please:
+        - Search existing issues to avoid duplicates
+        - Check if the documentation has been updated recently
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs attention?
+      options:
+        - README.md
+        - API Reference
+        - Code examples
+        - TypeScript type definitions
+        - Contributing guide
+        - Quick start guide
+        - Migration guide
+        - Error handling docs
+        - Code comments / JSDoc
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing information
+        - Incorrect/outdated information
+        - Unclear/confusing explanation
+        - Broken link
+        - Typo/grammar
+        - Missing code example
+        - Incorrect code example
+        - Missing edge case
+        - Improvement suggestion
+        - Translation issue
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Where is the documentation issue located?
+      placeholder: "e.g., README.md line 42, API Reference - AIClient.chat(), etc."
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Documentation
+      description: |
+        Copy/paste the current documentation that needs improvement, or describe what's currently missing.
+        Include relevant quotes or screenshots if helpful.
+      placeholder: |
+        Current text:
+        "..."
+
+        Or:
+        "This section is currently missing information about..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the Problem?
+      description: Explain what's wrong or unclear about the current documentation
+      placeholder: |
+        Example: "The example shows X but doesn't explain Y..."
+        Example: "The documentation says to do X, but that doesn't work when..."
+        Example: "There's no information about how to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested Improvement
+      description: |
+        How would you improve this documentation?
+        Provide specific suggestions or rewrites if possible.
+      placeholder: |
+        Suggested text:
+        "..."
+
+        Or suggested additions:
+        "Should include information about..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-example
+    attributes:
+      label: Code Example (if applicable)
+      description: |
+        If suggesting a new code example or fixing an existing one, provide the corrected code here.
+      placeholder: |
+        import { AIClient } from '@ai-integrator/core';
+
+        // Clear, working example
+        const client = new AIClient({
+          provider: 'openai',
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+      render: typescript
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Target Audience
+      description: Who is this documentation primarily for?
+      options:
+        - Beginners (first-time users)
+        - Intermediate users
+        - Advanced users
+        - Contributors/maintainers
+        - All users
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider-specific
+    attributes:
+      label: Provider-Specific?
+      description: Is this documentation issue specific to a particular provider?
+      options:
+        - All providers
+        - OpenAI only
+        - Anthropic only
+        - Gemini only
+        - Not provider-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: |
+        Any other context that would help improve the documentation?
+      placeholder: |
+        - Related issues: #...
+        - User feedback: "..."
+        - Common confusion points: ...
+        - Edge cases to document: ...
+        - Links to external resources: ...
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      description: Check all that apply
+      options:
+        - label: This affects new users getting started
+        - label: This causes runtime errors if followed incorrectly
+        - label: This affects edge runtime deployments
+        - label: This affects TypeScript users specifically
+        - label: This is a common question in community discussions
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you like to help fix this?
+      options:
+        - label: I would be willing to submit a PR to fix this documentation
+        - label: I need help with the fix but can provide input
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have checked the latest version of the documentation
+          required: true
+        - label: I have provided specific location and suggested improvements
+          required: true

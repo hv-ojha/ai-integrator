@@ -18,10 +18,13 @@ export type {
   FunctionDefinition,
   Usage,
   ProviderType,
+  BuiltInProviderType,
   ProviderConfig,
   FallbackConfig,
+  CustomProviderConfig,
   RetryConfig,
   ErrorType,
+  IProvider,
   // Tool calling types (v0.2.0)
   ToolDefinition,
   ToolCall,
@@ -32,6 +35,7 @@ export { AIIntegratorError } from './core/types';
 
 // Provider exports (for advanced usage)
 export { OpenAIProvider, AnthropicProvider, GeminiProvider } from './providers';
+export { BaseProvider } from './providers/base';
 
 // Utility exports (for advanced usage)
 export { retry, retryWithTimeout } from './utils';

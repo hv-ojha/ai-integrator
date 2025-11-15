@@ -1,7 +1,12 @@
 /**
- * Supported AI providers
+ * Built-in provider types
  */
-export type ProviderType = 'openai' | 'anthropic' | 'gemini';
+export type BuiltInProviderType = 'openai' | 'anthropic' | 'gemini';
+
+/**
+ * Supported AI providers (includes custom providers)
+ */
+export type ProviderType = BuiltInProviderType | string;
 
 /**
  * Message role in a conversation
@@ -220,13 +225,24 @@ export interface RetryConfig {
  */
 export interface FallbackConfig extends ProviderConfig {
   priority?: number; // Lower number = higher priority
+  customProvider?: new (config: ProviderConfig) => IProvider;
+}
+
+/**
+ * Configuration for custom providers
+ */
+export interface CustomProviderConfig extends ProviderConfig {
+  provider: string; // Custom identifier
+  customProvider: new (config: ProviderConfig) => IProvider;
+  priority?: number; // For fallback ordering
 }
 
 /**
  * Main client configuration
  */
 export interface AIClientConfig extends ProviderConfig {
-  fallbacks?: FallbackConfig[];
+  customProvider?: new (config: ProviderConfig) => IProvider;
+  fallbacks?: (FallbackConfig | CustomProviderConfig)[];
   retry?: Partial<RetryConfig>;
   timeout?: number; // in milliseconds
   debug?: boolean;

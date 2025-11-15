@@ -1,6 +1,6 @@
 {
   "name": "@ai-integrator/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The lightest AI integration library with zero-config switching between OpenAI, Anthropic, and Google Gemini. Optimized for edge runtimes.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

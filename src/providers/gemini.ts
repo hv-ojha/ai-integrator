@@ -146,15 +146,32 @@ export class GeminiProvider extends BaseProvider {
       ? systemMessages.map(m => m.content).join('\n\n')
       : undefined;
 
+    // Build a map of tool_call_id -> function name for Gemini
+    const toolCallMap = new Map<string, string>();
+    otherMessages.forEach(msg => {
+      if (msg.tool_calls) {
+        msg.tool_calls.forEach(tc => {
+          toolCallMap.set(tc.id, tc.function.name);
+        });
+      }
+    });
+
     // Convert to Gemini format
     const contents = otherMessages.map(msg => {
       // Handle tool response messages
       if (msg.role === 'tool') {
+        // Get function name from either msg.name or by looking up tool_call_id
+        const functionName = msg.name || (msg.tool_call_id ? toolCallMap.get(msg.tool_call_id) : undefined);
+
+        if (!functionName) {
+          throw new Error(`Tool response missing function name. Please include either 'name' or ensure the corresponding tool_call_id exists.`);
+        }
+
         return {
           role: 'user',
           parts: [{
             functionResponse: {
-              name: msg.name!, // Tool name
+              name: functionName,
               response: JSON.parse(msg.content || '{}'),
             },
           }],

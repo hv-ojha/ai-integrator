@@ -22,6 +22,11 @@ export type {
   FallbackConfig,
   RetryConfig,
   ErrorType,
+  // Tool calling types (v0.2.0)
+  ToolDefinition,
+  ToolCall,
+  ToolChoice,
+  ToolParameterSchema,
 } from './core/types';
 export { AIIntegratorError } from './core/types';
 
